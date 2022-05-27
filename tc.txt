@@ -1,0 +1,78 @@
+command user:
+- "user" => 501 Missing required argument
+- "user [user_ada]" => 331 Please, specify the password.
+- "user [user_gak_ada]" => 331 Please, specify the password.
+
+command pass:
+- "pass" => 530 Login incorrect.
+- "pass [pass_salah] => 530 Login incorrect.
+- "pass [pass_bener]" => 230 Login successful.
+
+`jalanin command kalo belum authenticated selain syst, feat` => 530 Please log in with USER and PASS first.
+`jalanin USER lagi setelah authenticated` => 503 Already logged in. QUIT first.
+`jalanin PASS lagi setelah authenticated` => 503 Already logged in.
+
+command pwd (relative default setting folder di server):
+- "pwd" => 257 "/" is current directory.
+
+command mkd:
+- "mkd" => 501 Missing required argument
+- "mkd  " => 550 Invalid file name or path
+- "mkd  [directory_gak_ada]" => 550 Couldn't open the file or directory
+- "mkd [nama_dir_udah_ada]" => 550 Directory with same name already exists.
+- "mkd [nama_dir_belum_ada]" => 257 "/[nama_dir_belum_ada]" created successfully.
+
+command rnfr & rnto:
+- "rnfr" => 501 Missing required argument
+- "rnfr [directory_gak_ada]" => 550 Couldn't open the file or directory
+- "rnfr [directory_ada]" => 350 Directory exists, ready for destination name.
+- "rnto" => 501 Missing required argument
+- "rnto [nama_directory]" =>503 Use RNFR first.
+
+- "rnfr
+   rnto [nama_directory]" =>
+        501 Missing required argument
+        503 Use RNFR first.
+
+- "rnfr [nama_directory_sama]
+   rnto [nama_directory_sama]" =>
+        350 Directory exists, ready for destination name.
+        250 File or directory renamed successfully.
+
+- "rnfr [nama_directory]
+   rnto [nama_directory_udah_ada]" =>
+        350 Directory exists, ready for destination name.
+        550 Permission denied
+
+command rmd:
+- "rmd [directory_ada]" => 250 Directory deleted successfully.
+- "rmd [directory_gak_ada]" => 550 Couldn't open the file or directory
+
+command dele: 
+- "dele" => 501 Missing required argument
+- "dele [folder]" => 550 Couldn't open the file
+- "dele [file_gak_ada]" => 550 Couldn't open the file or directory
+- "dele [file_tanpa_ext]" => 550 Couldn't open the file or directory
+- "dele [file_dengan_ext]" => 250 File deleted successfully.
+
+command cwd:
+- "cwd" => 501 Missing required argument
+- "cwd [ext_file]" => 550 Couldn't open the file or directory
+- "cwd [folder_gak_ada]" => 550 Couldn't open the file or directory
+- "cwd [folder_ada]" => 250 CWD command successful
+
+command help:
+- "help" =>
+    214 The following commands are recognized.
+    NOP  USER TYPE SYST SIZE RNTO RNFR RMD  REST QUIT
+    HELP XMKD MLST MKD  EPSV XCWD NOOP AUTH OPTS DELE
+    CWD  CDUP APPE STOR ALLO RETR PWD  FEAT CLNT MFMT
+    MODE XRMD PROT ADAT ABOR XPWD MDTM LIST MLSD PBSZ
+    NLST EPRT PASS STRU PASV STAT PORT
+    214 Help ok.
+
+command quit:
+- "quit" => 200 Goodbye.
+
+command [salah]:
+- "[cmd_salah]" => 500 Wrong command.
