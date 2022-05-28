@@ -16,11 +16,11 @@ Ketentuannya adalah mengimplementasikan RFC 959 (dituliskan dengan subbab) sebag
 
 [X] Keluar aplikasi (QUIT: 4.1.1)
 
-[ ] Unduh (RETR: 4.1.3)
+[X] Unduh (RETR: 4.1.3)
 
-[ ] Unggah (STOR: 4.1.3)
+[X] Unggah (STOR: 4.1.3)
 
-[ ] Mengganti nama file (RNTO: 4.1.3)
+[X] Mengganti nama file (RNTO: 4.1.3)
 
 [X] Menghapus file (DELE: 4.1.3) 
 
@@ -34,6 +34,6 @@ Ketentuannya adalah mengimplementasikan RFC 959 (dituliskan dengan subbab) sebag
 
 [X] HELP: 4.1.3
 
-[ ] Reply codes (200, 500, 202, 230, 530: 4.2.1)
+[X] Reply codes (200 [OK], 500 [OK], 202 [OK], 230 [OK], 530 [OK]: 4.2.1)
 
-[ ] Menerapkan teknik multiclient dengan modul select DAN thread
+[X] Menerapkan teknik multiclient dengan modul select DAN thread

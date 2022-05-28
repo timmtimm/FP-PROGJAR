@@ -24,26 +24,6 @@ SERVER_DATA = {
     "PASS" : "heart123"
 }
 
-CLIENT_DATA = {
-    "USER" : None,
-    "PASS" : None,
-    "AUTHENTICATED" : False,
-    "ENCODING": "ASCII",
-    "REAL_WD" : "/mnt/e/FTP",
-    "WD" : "/", # Working Directory
-    "DATA_SOCK": {
-        "H1": 127,
-        "H2": 0,
-        "H3": 0,
-        "H4": 1,
-        "P1": None,
-        "P2": None,
-    },
-    "DATA_SOCKET" : None,
-    "DATA_SOCKET_CONN": None,
-    "PASV": None
-}
-
 LIST_COMMAND = [
     "USER", "SYST", "TYPE", "RNTO", "RNFR", "RMD",
     "QUIT", "HELP", "MKD", "DELE", "CWD", "CDUP",
@@ -77,8 +57,29 @@ def send_datasock(data_sock, response):
     data_sock.sendall(response.encode())
 
 def threaded_socket(client_connection):
+    CLIENT_DATA = {
+        "USER" : None,
+        "PASS" : None,
+        "AUTHENTICATED" : False,
+        "ENCODING": "ASCII",
+        "REAL_WD" : "/mnt/e/FTP",
+        "WD" : "/", # Working Directory
+        "DATA_SOCK": {
+            "H1": 127,
+            "H2": 0,
+            "H3": 0,
+            "H4": 1,
+            "P1": None,
+            "P2": None,
+        },
+        "DATA_SOCKET" : None,
+        "DATA_SOCKET_CONN": None,
+        "PASV": None,
+        "RNFR": None,
+    }
+
     # Send Wellcome Message
-    client_connection.sendall("220 Welcome to FTP Server Simulator 1.0\r\n".encode())
+    reply_cmd(client_connection, "220 Welcome to FTP Server Simulator 1.0\r\n")
 
     # Get the client request
     while True:
@@ -107,7 +108,6 @@ def threaded_socket(client_connection):
             response = "331 Please, specify the password.\r\n"
             reply_cmd(client_connection, response)
             CLIENT_DATA["USER"] = request.split(cmd[0] + " ")[1]
-
         elif "PASS" == cmd[0]: # This command need an argument
 
             if CLIENT_DATA["AUTHENTICATED"] == True:
@@ -132,7 +132,6 @@ def threaded_socket(client_connection):
                 #Auth failed
                 response = "530 Login incorrect.\r\n"
                 reply_cmd(client_connection, response)
-
         elif "SYST" == cmd[0]:
             response = "215 UNIX emulated by FP.\r\n"
             reply_cmd(client_connection, response)
@@ -189,9 +188,8 @@ def threaded_socket(client_connection):
                 reply_cmd(client_connection, response)
                 continue
             
-            response = "501 Missing required argument\r\n"
-            reply_cmd(client_connection, response)
-            
+            response = "202 Command not implemented\r\n"
+            reply_cmd(client_connection, response)            
         elif "TYPE" == cmd[0]: # This command need an argument, authenticated
             if cmd[0] + " " in request == False:
                 response = "501 Missing required argument\r\n"
@@ -314,7 +312,6 @@ def threaded_socket(client_connection):
             except Exception as ex:
                 response = "550 Failed to delete folder.\r\n"
                 reply_cmd(client_connection, response)
-
         elif "DELE" == cmd[0]: # Authenticated, Need argument
             if cmd[0] + " " in request == False:
                 response = "501 Missing required argument\r\n"
@@ -349,19 +346,184 @@ def threaded_socket(client_connection):
             
             response += "\r\n214 Help ok.\r\n"
             reply_cmd(client_connection, response)
+        elif "RNFR" == cmd[0]: # Arguments, Auth
+            if cmd[0] + " " in request == False:
+                response = "501 Missing required argument\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            if CLIENT_DATA["AUTHENTICATED"] == False:
+                response = "530 Please log in with USER and PASS first.\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            file_name = request.split(cmd[0] + " ")[1]
+
+            # Then Validate Request WD
+            real_wd = CLIENT_DATA["REAL_WD"]
+            ftp_wd = CLIENT_DATA["WD"]
+
+            request_file_name = f"{real_wd}{ftp_wd}{file_name}"
+
+            if os.path.exists(request_file_name) == True:
+                response = "350 File exists, ready for destination name.\r\n"
+                # Save
+                CLIENT_DATA["RNFR"] = request_file_name
+            else:
+                response = "550 Couldn't open the file or directory\r\n"
+
+            reply_cmd(client_connection, response)
+        elif "RNTO" == cmd[0]: # Arguments, Auth, RNFR
+            if cmd[0] + " " in request == False:
+                response = "501 Missing required argument\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            if CLIENT_DATA["AUTHENTICATED"] == False:
+                response = "530 Please log in with USER and PASS first.\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            if CLIENT_DATA["RNFR"] == None:
+                response = "503 Use RNFR first.\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+
+            file_name = request.split(cmd[0] + " ")[1]
+
+            # Then Validate Request WD
+            real_wd = CLIENT_DATA["REAL_WD"]
+            ftp_wd = CLIENT_DATA["WD"]
+
+            request_to_file_name = f"{real_wd}{ftp_wd}{file_name}"
+
+            try:
+                os.rename(CLIENT_DATA["RNFR"], request_to_file_name)
+                CLIENT_DATA["RNFR"] = None
+                response = "250 File or directory renamed successfully.\r\n"
+                reply_cmd(client_connection, response)
+            except Exception as ex:
+                CLIENT_DATA["RNFR"] = None
+                response = "550 Failed to rename file or directory\r\n"
+                reply_cmd(client_connection, response)
+        elif "RETR" == cmd[0]: # Argument, Authenticated
+            if cmd[0] + " " in request == False:
+                response = "501 Missing required argument\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            if CLIENT_DATA["AUTHENTICATED"] == False:
+                response = "530 Please log in with USER and PASS first.\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            file_name = request.split(cmd[0] + " ")[1]
+            real_wd = CLIENT_DATA["REAL_WD"]
+            ftp_wd = CLIENT_DATA["WD"]
+            request_file = f"{real_wd}{ftp_wd}{file_name}"
+
+            # Check is file exist
+            if not os.path.exists(request_file):
+                reply_cmd(client_connection, f"550 Couldn't open the file\r\n")
+                continue
+
+            # Check if PASV mode active
+            if CLIENT_DATA["PASV"]:
+                reply_cmd(client_connection, f"150 Starting data transfer.\r\n")
+
+                # Accept Client from Data Socket
+                DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA["DATA_SOCKET"].accept()
+                print(f"[+] Someone {datasoc_address} is connected to data socket.")
+
+                # Response bytes of files
+
+                with open(request_file, "rb") as f:
+                    while True:
+                        # read the bytes from the file
+                        bytes_read = f.read()
+                        if not bytes_read:
+                            break
+
+                        # send to client
+                        DATA_SOCKET_CONN.send(bytes_read)
+
+                DATA_SOCKET_CONN.close()
+
+                # Disable PASV mode
+                CLIENT_DATA["PASV"] = False
+
+                reply_cmd(client_connection, f"226 Operation successful\r\n")
+            else:
+                # Send Error Message
+                reply_cmd(client_connection, f"425 Use PORT or PASV first.\r\n")
+
+        elif "STOR" == cmd[0]: # Argument, Authenticated
+            if cmd[0] + " " in request == False:
+                response = "501 Missing required argument\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            if CLIENT_DATA["AUTHENTICATED"] == False:
+                response = "530 Please log in with USER and PASS first.\r\n"
+                reply_cmd(client_connection, response)
+                continue
+
+            file_name = request.split(cmd[0] + " ")[1]
+            real_wd = CLIENT_DATA["REAL_WD"]
+            ftp_wd = CLIENT_DATA["WD"]
+            dest_file = f"{real_wd}{ftp_wd}{file_name}"
+
+            # Check if PASV mode active
+            if CLIENT_DATA["PASV"]:
+                reply_cmd(client_connection, f"150 Starting data transfer.\r\n")
+
+                # Accept Client from Data Socket
+                DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA["DATA_SOCKET"].accept()
+                print(f"[+] Someone {datasoc_address} is connected to data socket.")
+
+                # Response bytes of files
+                with open(dest_file, "wb") as f:
+                    while True:
+                        bytes_recv = DATA_SOCKET_CONN.recv(BUFFER_SIZE)
+
+                        if not bytes_recv:
+                            break
+
+                        f.write(bytes_recv)
+                        print("bytes recv:", bytes_recv)
+                        # send to client
+                        DATA_SOCKET_CONN.send(bytes_recv)
+
+                DATA_SOCKET_CONN.close()
+
+                # Disable PASV mode
+                CLIENT_DATA["PASV"] = False
+
+                reply_cmd(client_connection, f"226 Operation successful\r\n")
+            else:
+                # Send Error Message
+                reply_cmd(client_connection, f"425 Use PORT or PASV first.\r\n")
+
         elif "QUIT" == cmd[0]:
             reply_cmd(client_connection, "200 Goodbye.\r\n")
             break
+        else:
+            reply_cmd(client_connection, "500 Commandnya gak ada.\r\n")
 
     # Close connection
     client_connection.close()
 
 try:
-    client_connection, client_address = server_socket.accept()
-    print(f"[+] New client {client_address} is connected.")
+    while True:
+        # Wait for client connections
+        client_connection, client_address = server_socket.accept()
+        print(f"[+] New client {client_address} is connected.")
 
-    threaded_socket(client_connection)
-        
-except KeyboardInterrupt:
+        start_new_thread(threaded_socket, (client_connection, ))
+        ThreadCount += 1
+        print('[!] Thread Number: ' + str(ThreadCount))
+
+except KeyboardInterrupt as ki:
     server_socket.close()
     sys.exit(0)
