@@ -17,7 +17,7 @@ import shutil
 BUFFER_SIZE=1024
 # Define socket host and port
 SERVER_HOST = '127.0.0.1'
-SERVER_PORT = 6999
+SERVER_PORT = 5656
 
 SERVER_DATA = {
     "USER" : "ariesta",
@@ -62,7 +62,7 @@ def threaded_socket(client_connection):
         "PASS" : None,
         "AUTHENTICATED" : False,
         "ENCODING": "ASCII",
-        "REAL_WD" : "/mnt/e/FTP",
+        "REAL_WD" : "/mnt/d/BU-2022-5/FTP",
         "WD" : "/", # Working Directory
         "DATA_SOCK": {
             "H1": 127,
@@ -509,7 +509,7 @@ def threaded_socket(client_connection):
             reply_cmd(client_connection, "200 Goodbye.\r\n")
             break
         else:
-            reply_cmd(client_connection, "500 Commandnya gak ada.\r\n")
+            reply_cmd(client_connection, "500 Wrong command.\r\n")
 
     # Close connection
     client_connection.close()
