@@ -69,16 +69,16 @@ Relative bergantung pada default folder di server
 
 ### HELP
 - "HELP" =>
-    214 The following commands are recognized.
+    ```214 The following commands are recognized.
     NOP  USER TYPE SYST SIZE RNTO RNFR RMD  REST QUIT
     HELP XMKD MLST MKD  EPSV XCWD NOOP AUTH OPTS DELE
     CWD  CDUP APPE STOR ALLO RETR PWD  FEAT CLNT MFMT
     MODE XRMD PROT ADAT ABOR XPWD MDTM LIST MLSD PBSZ
     NLST EPRT PASS STRU PASV STAT PORT
-    214 Help ok.
+    214 Help ok.```
 
 ### QUIT
-- "QUIT" => 200 Goodbye.
+- "QUIT" => `200 Goodbye.`
 
 ### Kasus lain
 
