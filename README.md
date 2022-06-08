@@ -23,3 +23,9 @@ Mengimplementasikan RFC 959 (dituliskan dengan subbab) sebagai berikut
 - [X] HELP: 4.1.3
 - [X] Reply codes (200 [OK], 500 [OK], 202 [OK], 230 [OK], 530 [OK]: 4.2.1)
 - [X] Menerapkan teknik multiclient dengan modul select DAN thread
+
+## Testcase
+Kami telah melakukan mencantumkan list response dari command yang dikirim menggunakan referensi pada Filezilla. List response bisa dilihat pada file [testcase](testcase.md)
+
+## Command
+Kami telah mencantumkan command yang dibutuhkan untuk mewakilkan setiap studi kasus yang ada. List command dilihat pada file [command](command.md)

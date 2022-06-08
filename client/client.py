@@ -1,7 +1,7 @@
 import socket
 import time
 
-print("Welcome to FTP client2-an")
+print("Welcome to FTP clientnan")
 
 HOST = input("enter server:")
 PORT = int(input("enter port:"))
@@ -105,7 +105,7 @@ while True:
                         DATA_SOCK.close()
                         break
 
-                    datasock_resp += resp                    
+                    datasock_resp += resp
                 except Exception as ex:
                     DATA_SOCK.close()
                     break
@@ -117,4 +117,4 @@ while True:
     if cmd == "QUIT":
         break
     
-print("Thank you for using FTP client2an")
+print("Thank you for using FTP clientnan")

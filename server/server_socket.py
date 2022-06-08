@@ -13,6 +13,7 @@ from urllib import response
 from random import *
 import subprocess
 import shutil
+import select
 
 BUFFER_SIZE=1024
 # Define socket host and port
@@ -21,7 +22,7 @@ SERVER_PORT = 5656
 
 SERVER_DATA = {
     "USER" : "ariesta",
-    "PASS" : "heart123"
+    "PASS" : "suga123"
 }
 
 LIST_COMMAND = [
@@ -47,6 +48,9 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind((SERVER_HOST, SERVER_PORT))
 server_socket.listen(5)
+
+input_socket = [server_socket]
+
 print('[!] Listening on port %s ...' % SERVER_PORT)
 
 def reply_cmd(conn, msg):
@@ -95,7 +99,7 @@ def threaded_socket(client_connection):
         print("CMD", cmd[0])
 
         if "USER" == cmd[0]: # This command need an argument
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -147,7 +151,7 @@ def threaded_socket(client_connection):
             response = "257 \"" + CLIENT_DATA["WD"] + "\" is current directory.\r\n"
             reply_cmd(client_connection, response)
         elif "CWD" == cmd[0]: # This command need an argument, authenticated
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue     
@@ -164,14 +168,19 @@ def threaded_socket(client_connection):
             ftp_wd = CLIENT_DATA["WD"]
 
             request_wd_join = ""
+            fix_request_wd = ""
             if request_wd[0] != "/":
                 # append to ftp wd
                 request_wd_join = f"{real_wd}{ftp_wd}{request_wd}"
+                fix_request_wd = f"{ftp_wd}{request_wd}"
             else:
                 request_wd_join = f"{real_wd}{request_wd}"
+                fix_request_wd = f"{request_wd}"
+
+            print("fix_request_wd", fix_request_wd)
 
             if os.path.exists(request_wd_join) == True and os.path.isfile(request_wd_join) == False:
-                CLIENT_DATA["WD"] = request_wd
+                CLIENT_DATA["WD"] = fix_request_wd
 
                 # Fix naming
                 if CLIENT_DATA["WD"][-1] != "/":
@@ -191,7 +200,7 @@ def threaded_socket(client_connection):
             response = "202 Command not implemented\r\n"
             reply_cmd(client_connection, response)            
         elif "TYPE" == cmd[0]: # This command need an argument, authenticated
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -265,7 +274,7 @@ def threaded_socket(client_connection):
                 # Send Error Message
                 reply_cmd(client_connection, f"425 Use PORT or PASV first.\r\n")
         elif "MKD" == cmd[0]: # Authenticated, Need argument
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -289,7 +298,7 @@ def threaded_socket(client_connection):
                 response = "550 Failed to create folder.\r\n"
                 reply_cmd(client_connection, response)
         elif "RMD" == cmd[0]: # Authenticated, Need argument
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -313,7 +322,7 @@ def threaded_socket(client_connection):
                 response = "550 Failed to delete folder.\r\n"
                 reply_cmd(client_connection, response)
         elif "DELE" == cmd[0]: # Authenticated, Need argument
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -347,7 +356,7 @@ def threaded_socket(client_connection):
             response += "\r\n214 Help ok.\r\n"
             reply_cmd(client_connection, response)
         elif "RNFR" == cmd[0]: # Arguments, Auth
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -374,7 +383,7 @@ def threaded_socket(client_connection):
 
             reply_cmd(client_connection, response)
         elif "RNTO" == cmd[0]: # Arguments, Auth, RNFR
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -408,7 +417,7 @@ def threaded_socket(client_connection):
                 response = "550 Failed to rename file or directory\r\n"
                 reply_cmd(client_connection, response)
         elif "RETR" == cmd[0]: # Argument, Authenticated
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
@@ -459,7 +468,7 @@ def threaded_socket(client_connection):
                 reply_cmd(client_connection, f"425 Use PORT or PASV first.\r\n")
 
         elif "STOR" == cmd[0]: # Argument, Authenticated
-            if cmd[0] + " " in request == False:
+            if cmd[0] + " " != request[:len(cmd[0] + " ")]:
                 response = "501 Missing required argument\r\n"
                 reply_cmd(client_connection, response)
                 continue
