@@ -1,4 +1,4 @@
-[Kembali ke readme](readme.md)
+[Kembali ke readme](README.md)
 
 # Testcase
 
