@@ -1,4 +1,4 @@
-[Kembali ke readme](readme.md)
+[Kembali ke readme](README.md)
 
 # List Command
 
@@ -112,6 +112,10 @@ LIST
 
 - [X] HELP: 4.1.3
 ```
+localhost
+5656
+USER ariesta
+PASS suga123
 HELP
 ```
 
