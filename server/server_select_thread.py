@@ -65,11 +65,13 @@ CLIENT_DATA_DICT = {}
 def handle_socket(client_connection):
     #Process this socket
     request=client_connection.recv(BUFFER_SIZE)
+    if len(request) == 0:
+        return
+        
     print(request)
     request=request.decode()
 
-    if len(request) == 0:
-        return
+
 
     request = request.rstrip()
     cmd = request.split(" ")
