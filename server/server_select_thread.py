@@ -62,12 +62,12 @@ def send_datasock(data_sock, response):
 
 CLIENT_DATA_DICT = {}
 
-def handle_socket(client_connection):
+def handle_socket(client_connection, sock_fd):
     #Process this socket
     request=client_connection.recv(BUFFER_SIZE)
     if len(request) == 0:
         return
-        
+
     print(request)
     request=request.decode()
 
@@ -83,17 +83,17 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == True:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == True:
             response = "503 Already logged in. QUIT first.\r\n"
             reply_cmd(client_connection, response)
             return
 
         response = "331 Please, specify the password.\r\n"
         reply_cmd(client_connection, response)
-        CLIENT_DATA_DICT[sock.fileno()]["USER"] = request.split(cmd[0] + " ")[1]
+        CLIENT_DATA_DICT[sock_fd]["USER"] = request.split(cmd[0] + " ")[1]
     elif "PASS" == cmd[0]: # This command need an argument
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == True:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == True:
             response = "503 Already logged in.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -103,11 +103,11 @@ def handle_socket(client_connection):
             passwd = request.split(cmd[0] + " ")[1]
 
         # Save Credentials
-        CLIENT_DATA_DICT[sock.fileno()]["PASS"] = passwd
+        CLIENT_DATA_DICT[sock_fd]["PASS"] = passwd
         # Validate Credentials
-        if CLIENT_DATA_DICT[sock.fileno()]["USER"] == SERVER_DATA["USER"] and CLIENT_DATA_DICT[sock.fileno()]["PASS"] == SERVER_DATA["PASS"]:
+        if CLIENT_DATA_DICT[sock_fd]["USER"] == SERVER_DATA["USER"] and CLIENT_DATA_DICT[sock_fd]["PASS"] == SERVER_DATA["PASS"]:
             # Auth success
-            CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] = True
+            CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] = True
 
             response = "230 Login successful.\r\n"
             reply_cmd(client_connection, response)
@@ -122,12 +122,12 @@ def handle_socket(client_connection):
         response = "211-Features:\r\n SIZE\r\n211 End\r\n"
         reply_cmd(client_connection, response)
     elif "PWD" == cmd[0]: # This is authenticated
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
 
-        response = "257 \"" + CLIENT_DATA_DICT[sock.fileno()]["WD"] + "\" is current directory.\r\n"
+        response = "257 \"" + CLIENT_DATA_DICT[sock_fd]["WD"] + "\" is current directory.\r\n"
         reply_cmd(client_connection, response)
     elif "CWD" == cmd[0]: # This command need an argument, authenticated
         if cmd[0] + " " != request[:len(cmd[0] + " ")]:
@@ -135,7 +135,7 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return     
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -143,8 +143,8 @@ def handle_socket(client_connection):
         request_wd = request.split(cmd[0] + " ")[1]
 
         # Then Validate Request WD
-        real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-        ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+        real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+        ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
 
         request_wd_join = ""
         fix_request_wd = ""
@@ -159,19 +159,19 @@ def handle_socket(client_connection):
         print("fix_request_wd", fix_request_wd)
 
         if os.path.exists(request_wd_join) == True and os.path.isfile(request_wd_join) == False:
-            CLIENT_DATA_DICT[sock.fileno()]["WD"] = fix_request_wd
+            CLIENT_DATA_DICT[sock_fd]["WD"] = fix_request_wd
 
             # Fix naming
-            if CLIENT_DATA_DICT[sock.fileno()]["WD"][-1] != "/":
-                CLIENT_DATA_DICT[sock.fileno()]["WD"] += "/"
+            if CLIENT_DATA_DICT[sock_fd]["WD"][-1] != "/":
+                CLIENT_DATA_DICT[sock_fd]["WD"] += "/"
 
             reply_cmd(client_connection, "250 CWD command successful\r\n")
-            print("CWD sekarang", CLIENT_DATA_DICT[sock.fileno()]["WD"])
+            print("CWD sekarang", CLIENT_DATA_DICT[sock_fd]["WD"])
         else:
             response = "550 Couldn't open the file or directory\r\n"
             reply_cmd(client_connection, response)
     elif "CDUP" == cmd[0]:
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -184,7 +184,7 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -193,7 +193,7 @@ def handle_socket(client_connection):
         response = "200 Type set to "+cmd_1+"\r\n"
         reply_cmd(client_connection, response)
     elif "PASV" == cmd[0]: # Authenticated
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -206,37 +206,37 @@ def handle_socket(client_connection):
         while is_address_exist("127.0.0.1", data_port):
             data_port = randint(1,2**16)
 
-        p1 = CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCK"]["P1"] = int(data_port/256)
-        p2 = CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCK"]["P2"] = data_port % 256
+        p1 = CLIENT_DATA_DICT[sock_fd]["DATA_SOCK"]["P1"] = int(data_port/256)
+        p2 = CLIENT_DATA_DICT[sock_fd]["DATA_SOCK"]["P2"] = data_port % 256
         
         # Prepare Data Socket
-        CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCKET"] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCKET"].bind(("127.0.0.1", data_port))
-        CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCKET"].listen(1)
+        CLIENT_DATA_DICT[sock_fd]["DATA_SOCKET"] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        CLIENT_DATA_DICT[sock_fd]["DATA_SOCKET"].bind(("127.0.0.1", data_port))
+        CLIENT_DATA_DICT[sock_fd]["DATA_SOCKET"].listen(1)
 
         # Set PASV mode
-        CLIENT_DATA_DICT[sock.fileno()]["PASV"] = True
+        CLIENT_DATA_DICT[sock_fd]["PASV"] = True
 
         response = f"227 Entering Passive Mode (127,0,0,1,{p1},{p2})\r\n"
         reply_cmd(client_connection, response)
     elif "LIST" == cmd[0]: # Authenticated
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
 
         # List ini harus PASV dulu
         # Check if PASV mode active
-        if CLIENT_DATA_DICT[sock.fileno()]["PASV"]:
+        if CLIENT_DATA_DICT[sock_fd]["PASV"]:
             reply_cmd(client_connection, f"150 Starting data transfer.\r\n")
 
             # Accept Client from Data Socket
-            DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCKET"].accept()
+            DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA_DICT[sock_fd]["DATA_SOCKET"].accept()
             print(f"[+] Someone {datasoc_address} is connected to data socket.")
 
             # Response List
-            real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-            ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+            real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+            ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
             output_exec = subprocess.run(['ls', '-l', f"{real_wd}{ftp_wd}"], capture_output=True, text=True).stdout
             list_dir = output_exec.split("\n")
             list_dir_str = "\r\n".join(list_dir[1:])
@@ -246,7 +246,7 @@ def handle_socket(client_connection):
             DATA_SOCKET_CONN.close()
 
             # Disable PASV mode
-            CLIENT_DATA_DICT[sock.fileno()]["PASV"] = False
+            CLIENT_DATA_DICT[sock_fd]["PASV"] = False
 
             reply_cmd(client_connection, f"226 Operation successful\r\n")
         else:
@@ -258,7 +258,7 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -266,8 +266,8 @@ def handle_socket(client_connection):
         dir_name = request.split(cmd[0] + " ")[1]
         # try catch
         try:
-            real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-            ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+            real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+            ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
             os.mkdir(f"{real_wd}{ftp_wd}{dir_name}")
 
             # Success then resp
@@ -282,7 +282,7 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -290,8 +290,8 @@ def handle_socket(client_connection):
         dir_name = request.split(cmd[0] + " ")[1]
         # try catch
         try:
-            real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-            ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+            real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+            ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
             shutil.rmtree(f"{real_wd}{ftp_wd}{dir_name}")
 
             # Success then resp
@@ -306,7 +306,7 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -314,8 +314,8 @@ def handle_socket(client_connection):
         file_name = request.split(cmd[0] + " ")[1]
         # try catch
         try:
-            real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-            ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+            real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+            ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
             os.remove(f"{real_wd}{ftp_wd}{file_name}")
 
             # Success then resp
@@ -340,7 +340,7 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -348,15 +348,15 @@ def handle_socket(client_connection):
         file_name = request.split(cmd[0] + " ")[1]
 
         # Then Validate Request WD
-        real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-        ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+        real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+        ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
 
         request_file_name = f"{real_wd}{ftp_wd}{file_name}"
 
         if os.path.exists(request_file_name) == True:
             response = "350 File exists, ready for destination name.\r\n"
             # Save
-            CLIENT_DATA_DICT[sock.fileno()]["RNFR"] = request_file_name
+            CLIENT_DATA_DICT[sock_fd]["RNFR"] = request_file_name
         else:
             response = "550 Couldn't open the file or directory\r\n"
 
@@ -367,12 +367,12 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["RNFR"] == None:
+        if CLIENT_DATA_DICT[sock_fd]["RNFR"] == None:
             response = "503 Use RNFR first.\r\n"
             reply_cmd(client_connection, response)
             return
@@ -381,18 +381,18 @@ def handle_socket(client_connection):
         file_name = request.split(cmd[0] + " ")[1]
 
         # Then Validate Request WD
-        real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-        ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+        real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+        ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
 
         request_to_file_name = f"{real_wd}{ftp_wd}{file_name}"
 
         try:
-            os.rename(CLIENT_DATA_DICT[sock.fileno()]["RNFR"], request_to_file_name)
-            CLIENT_DATA_DICT[sock.fileno()]["RNFR"] = None
+            os.rename(CLIENT_DATA_DICT[sock_fd]["RNFR"], request_to_file_name)
+            CLIENT_DATA_DICT[sock_fd]["RNFR"] = None
             response = "250 File or directory renamed successfully.\r\n"
             reply_cmd(client_connection, response)
         except Exception as ex:
-            CLIENT_DATA_DICT[sock.fileno()]["RNFR"] = None
+            CLIENT_DATA_DICT[sock_fd]["RNFR"] = None
             response = "550 Failed to rename file or directory\r\n"
             reply_cmd(client_connection, response)
     elif "RETR" == cmd[0]: # Argument, Authenticated
@@ -401,14 +401,14 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
 
         file_name = request.split(cmd[0] + " ")[1]
-        real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-        ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+        real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+        ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
         request_file = f"{real_wd}{ftp_wd}{file_name}"
 
         # Check is file exist
@@ -417,11 +417,11 @@ def handle_socket(client_connection):
             return
 
         # Check if PASV mode active
-        if CLIENT_DATA_DICT[sock.fileno()]["PASV"]:
+        if CLIENT_DATA_DICT[sock_fd]["PASV"]:
             reply_cmd(client_connection, f"150 Starting data transfer.\r\n")
 
             # Accept Client from Data Socket
-            DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCKET"].accept()
+            DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA_DICT[sock_fd]["DATA_SOCKET"].accept()
             print(f"[+] Someone {datasoc_address} is connected to data socket.")
 
             # Response bytes of files
@@ -439,7 +439,7 @@ def handle_socket(client_connection):
             DATA_SOCKET_CONN.close()
 
             # Disable PASV mode
-            CLIENT_DATA_DICT[sock.fileno()]["PASV"] = False
+            CLIENT_DATA_DICT[sock_fd]["PASV"] = False
 
             reply_cmd(client_connection, f"226 Operation successful\r\n")
         else:
@@ -452,22 +452,22 @@ def handle_socket(client_connection):
             reply_cmd(client_connection, response)
             return
 
-        if CLIENT_DATA_DICT[sock.fileno()]["AUTHENTICATED"] == False:
+        if CLIENT_DATA_DICT[sock_fd]["AUTHENTICATED"] == False:
             response = "530 Please log in with USER and PASS first.\r\n"
             reply_cmd(client_connection, response)
             return
 
         file_name = request.split(cmd[0] + " ")[1]
-        real_wd = CLIENT_DATA_DICT[sock.fileno()]["REAL_WD"]
-        ftp_wd = CLIENT_DATA_DICT[sock.fileno()]["WD"]
+        real_wd = CLIENT_DATA_DICT[sock_fd]["REAL_WD"]
+        ftp_wd = CLIENT_DATA_DICT[sock_fd]["WD"]
         dest_file = f"{real_wd}{ftp_wd}{file_name}"
 
         # Check if PASV mode active
-        if CLIENT_DATA_DICT[sock.fileno()]["PASV"]:
+        if CLIENT_DATA_DICT[sock_fd]["PASV"]:
             reply_cmd(client_connection, f"150 Starting data transfer.\r\n")
 
             # Accept Client from Data Socket
-            DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA_DICT[sock.fileno()]["DATA_SOCKET"].accept()
+            DATA_SOCKET_CONN, datasoc_address = CLIENT_DATA_DICT[sock_fd]["DATA_SOCKET"].accept()
             print(f"[+] Someone {datasoc_address} is connected to data socket.")
 
             # Response bytes of files
@@ -486,7 +486,7 @@ def handle_socket(client_connection):
             DATA_SOCKET_CONN.close()
 
             # Disable PASV mode
-            CLIENT_DATA_DICT[sock.fileno()]["PASV"] = False
+            CLIENT_DATA_DICT[sock_fd]["PASV"] = False
 
             reply_cmd(client_connection, f"226 Operation successful\r\n")
         else:
@@ -505,9 +505,12 @@ try:
         read_ready, write_ready, exception = select.select(input_socket, [], [])
         # print(read_ready)
         for sock in read_ready:
+            # print("handling", sock.fileno())
+            # print("sock", sock)
             if sock == server_socket:
                 client_socket, client_address = server_socket.accept()
                 print(f"[+] New client {client_address} is connected.")
+                print(f"[+] New client fd {client_socket.fileno()} is connected.")
                 input_socket.append(client_socket)
 
                 CLIENT_DATA_DICT[client_socket.fileno()] = {
@@ -535,7 +538,7 @@ try:
                 reply_cmd(client_socket, "220 Welcome to FTP Server Simulator 1.0\r\n")
             else:            	
                 client_connection = sock
-                start_new_thread(handle_socket, (client_connection, ))
+                start_new_thread(handle_socket, (client_connection, sock.fileno(), ))
         # Wait for client connections
         # client_connection, client_address = server_socket.accept()
         # print(f"[+] New client {client_address} is connected.")
